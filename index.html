@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#12160f" />
+  <title>Gas Usage</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect rx='6' width='32' height='32' fill='%23e8a317'/%3E%3Cpath d='M9 8h8a3 3 0 0 1 3 3v10a2 2 0 0 1-2 2H9V8z' fill='%2312160f'/%3E%3Cpath d='M20 12h2.2a1.5 1.5 0 0 1 1.5 1.5V18a2 2 0 0 0 2 2' stroke='%2312160f' stroke-width='1.6' fill='none'/%3E%3C/svg%3E" />
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" width="28" height="28"><rect rx="6" width="32" height="32" fill="#e8a317"/><path d="M9 8h8a3 3 0 0 1 3 3v10a2 2 0 0 1-2 2H9V8z" fill="#12160f"/><path d="M20 12h2.2a1.5 1.5 0 0 1 1.5 1.5V18a2 2 0 0 0 2 2" stroke="#12160f" stroke-width="1.6" fill="none"/></svg>
+        </span>
+        <div>
+          <strong>Gas Usage</strong>
+          <small>Fill-ups, MPG, cost</small>
+        </div>
+      </div>
+      <nav class="nav" aria-label="Primary">
+        <button class="nav-btn active" data-view="dashboard">Dashboard</button>
+        <button class="nav-btn" data-view="log">Log fill-up</button>
+        <button class="nav-btn" data-view="history">History</button>
+        <button class="nav-btn" data-view="vehicles">Vehicles</button>
+        <button class="nav-btn" data-view="reports">Reports</button>
+      </nav>
+      <div class="side-foot">
+        <label class="field compact">
+          <span>Active vehicle</span>
+          <select id="activeVehicle"></select>
+        </label>
+        <p class="hint">Stored in IndexedDB in this browser. No account, no server.</p>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow" id="eyebrow">Overview</p>
+          <h1 id="viewTitle">Dashboard</h1>
+        </div>
+        <div class="top-actions">
+          <button class="btn ghost" id="exportCsvBtn" type="button">Export CSV</button>
+          <button class="btn" id="quickLogBtn" type="button">Log fill-up</button>
+        </div>
+      </header>
+
+      <section id="view-dashboard" class="view active">
+        <div class="stats" id="statGrid"></div>
+        <div class="grid-2">
+          <article class="card">
+            <header class="card-h">
+              <h2>MPG trend</h2>
+              <span class="muted" id="mpgCaption">Full-tank intervals</span>
+            </header>
+            <canvas id="mpgChart" height="220" aria-label="Miles per gallon trend"></canvas>
+          </article>
+          <article class="card">
+            <header class="card-h">
+              <h2>Monthly spend</h2>
+              <span class="muted">Last 6 months</span>
+            </header>
+            <canvas id="spendChart" height="220" aria-label="Monthly fuel spend"></canvas>
+          </article>
+        </div>
+        <article class="card">
+          <header class="card-h">
+            <h2>Recent fill-ups</h2>
+            <button class="link" data-view="history" type="button">View all</button>
+          </header>
+          <div id="recentList" class="table-wrap"></div>
+        </article>
+      </section>
+
+      <section id="view-log" class="view">
+        <form id="fillForm" class="card form-card">
+          <div class="form-grid">
+            <label class="field">
+              <span>Vehicle</span>
+              <select name="vehicleId" id="formVehicle" required></select>
+            </label>
+            <label class="field">
+              <span>Date</span>
+              <input type="date" name="date" required />
+            </label>
+            <label class="field">
+              <span>Odometer</span>
+              <input type="number" name="odometer" min="0" step="0.1" required placeholder="45210" />
+            </label>
+            <label class="field">
+              <span>Gallons</span>
+              <input type="number" name="gallons" min="0.001" step="0.001" required placeholder="12.448" />
+            </label>
+            <label class="field">
+              <span>Price per gallon</span>
+              <input type="number" name="pricePerGallon" min="0" step="0.001" required placeholder="3.499" />
+            </label>
+            <label class="field">
+              <span>Station</span>
+              <input type="text" name="station" placeholder="Optional" />
+            </label>
+            <label class="field span-2">
+              <span>Notes</span>
+              <input type="text" name="notes" placeholder="Optional" />
+            </label>
+            <label class="check span-2">
+              <input type="checkbox" name="fullTank" checked />
+              <span>Full tank — used for MPG. Leave unchecked for a partial fill.</span>
+            </label>
+          </div>
+          <div class="form-actions">
+            <button class="btn ghost" type="button" id="cancelEditBtn" hidden>Cancel edit</button>
+            <button class="btn" type="submit" id="saveFillBtn">Save fill-up</button>
+          </div>
+          <p class="form-note" id="formNote"></p>
+        </form>
+      </section>
+
+      <section id="view-history" class="view">
+        <div class="filters card">
+          <label class="field">
+            <span>Search</span>
+            <input type="search" id="historySearch" placeholder="Station or notes" />
+          </label>
+          <label class="field">
+            <span>From</span>
+            <input type="date" id="historyFrom" />
+          </label>
+          <label class="field">
+            <span>To</span>
+            <input type="date" id="historyTo" />
+          </label>
+        </div>
+        <div class="card table-wrap" id="historyTable"></div>
+      </section>
+
+      <section id="view-vehicles" class="view">
+        <form id="vehicleForm" class="card form-card">
+          <h2>Add a vehicle</h2>
+          <div class="form-grid">
+            <label class="field">
+              <span>Name</span>
+              <input type="text" name="name" required placeholder="Daily driver" />
+            </label>
+            <label class="field">
+              <span>Year</span>
+              <input type="number" name="year" min="1950" max="2100" placeholder="2019" />
+            </label>
+            <label class="field">
+              <span>Make</span>
+              <input type="text" name="make" placeholder="Honda" />
+            </label>
+            <label class="field">
+              <span>Model</span>
+              <input type="text" name="model" placeholder="Civic" />
+            </label>
+            <label class="field">
+              <span>Fuel</span>
+              <select name="fuelType">
+                <option>Regular</option>
+                <option>Midgrade</option>
+                <option>Premium</option>
+                <option>Diesel</option>
+                <option>E85</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Tank gallons</span>
+              <input type="number" name="tankCapacity" min="0" step="0.1" placeholder="13.2" />
+            </label>
+          </div>
+          <div class="form-actions">
+            <button class="btn" type="submit">Add vehicle</button>
+          </div>
+        </form>
+        <div id="vehicleList" class="vehicle-list"></div>
+      </section>
+
+      <section id="view-reports" class="view">
+        <div class="grid-2">
+          <article class="card">
+            <h2>Backup</h2>
+            <p class="muted">Everything lives in this browser. Export a JSON backup before clearing site data.</p>
+            <div class="btn-row">
+              <button class="btn" type="button" id="exportJsonBtn">Download JSON</button>
+              <button class="btn ghost" type="button" id="exportCsvBtn2">Download CSV</button>
+              <label class="btn ghost file-btn">
+                Import JSON
+                <input type="file" id="importJson" accept="application/json,.json" hidden />
+              </label>
+            </div>
+          </article>
+          <article class="card">
+            <h2>Units</h2>
+            <div class="form-grid">
+              <label class="field">
+                <span>Currency symbol</span>
+                <input type="text" id="currencySymbol" maxlength="3" />
+              </label>
+              <label class="field">
+                <span>Distance</span>
+                <select id="distanceUnit">
+                  <option value="mi">Miles</option>
+                  <option value="km">Kilometers</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Volume</span>
+                <select id="volumeUnit">
+                  <option value="gal">Gallons</option>
+                  <option value="L">Liters</option>
+                </select>
+              </label>
+            </div>
+            <p class="hint">Labels only. Numbers are stored as entered — do not mix units in one vehicle.</p>
+          </article>
+        </div>
+        <article class="card">
+          <header class="card-h">
+            <h2>Lifetime by vehicle</h2>
+          </header>
+          <div id="reportTable" class="table-wrap"></div>
+        </article>
+        <article class="card danger-card">
+          <h2>Reset</h2>
+          <p class="muted">Deletes every vehicle and fill-up in this browser.</p>
+          <button class="btn danger" type="button" id="resetBtn">Erase all data</button>
+        </article>
+      </section>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+  <script src="app.js"></script>
+</body>
+</html>
